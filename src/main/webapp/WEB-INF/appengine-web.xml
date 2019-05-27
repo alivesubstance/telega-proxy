@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
+    <runtime>java8</runtime>
+    <threadsafe>true</threadsafe>
+    <system-properties>
+        <property name="java.util.logging.config.file" value="WEB-INF/logging.properties"/>
+    </system-properties>
+    <automatic-scaling>
+        <max-instances>1</max-instances>
+    </automatic-scaling>
+    <url-stream-handler>urlfetch</url-stream-handler> 
+<!--    <system-properties>-->
+<!--        <property name="teleproxy.whitelist" value="754871252:AAGNFauixcVTvMMSnQnbQzfcNTh5LnQIw-0,868394687:AAEgtFHQk3Q0m7TQn_lDc7epY2DUsrK9jJU" />-->
+<!--    </system-properties>-->
+</appengine-web-app>
