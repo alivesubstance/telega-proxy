@@ -1,7 +1,11 @@
 package com.mycompany.teleproxy;
 
-import static com.google.appengine.repackaged.com.google.common.base.Predicates.not;
-
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,12 +19,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.servlet.ServletException;
 
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import static com.google.appengine.repackaged.com.google.common.base.Predicates.not;
 
 @WebServlet(name = "TeleProxyServlet", value = "/*")
 public class TeleProxyServlet extends HttpServlet {
@@ -62,9 +62,13 @@ public class TeleProxyServlet extends HttpServlet {
 		HttpURLConnection conn = openConnection(url, isPOST);
 		
 		if (isPOST) {
-			try (OutputStream proxyOut = conn.getOutputStream()) {
-				copy(req.getInputStream(), proxyOut);
-				proxyOut.flush();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+			conn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+
+			try (DataOutputStream wr = new DataOutputStream(conn.getOutputStream())) {
+                copy(req.getInputStream(), wr);
+				wr.flush();
 			}
 		}
 		
