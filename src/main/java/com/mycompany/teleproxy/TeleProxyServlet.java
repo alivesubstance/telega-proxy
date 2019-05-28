@@ -1,11 +1,12 @@
 package com.mycompany.teleproxy;
 
+import org.apache.commons.io.IOUtils;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,58 +25,58 @@ import static com.google.appengine.repackaged.com.google.common.base.Predicates.
 
 @WebServlet(name = "TeleProxyServlet", value = "/*")
 public class TeleProxyServlet extends HttpServlet {
-	
+
 	private static final String TARGET_URL = "https://api.telegram.org";
 	protected Set<String> WHITE_LIST = new HashSet<>();
 	protected static final Pattern REGEX = Pattern.compile("/bot(.*?)/");
-	
+
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		String path = req.getRequestURI();
-		
+
 		String botKey = findBotKey(path);
-		
+
 		if (botKey == null) {
 			resp.sendError(404, "Bot key not found in path " + path);
 			return;
 		}
-		
+
 		if (!WHITE_LIST.isEmpty() && !WHITE_LIST.contains(botKey)) {
 			resp.sendError(403);
 			return;
 		}
-		
+
 		forwardCall(path, req, resp);
-		
+
 	}
-	
+
 	private void forwardCall(String path, HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		String url = TARGET_URL + path;
 		String qString = req.getQueryString();
 		if (qString != null) {
 			url = url + "?" + qString;
 		}
-		
+
 		System.out.println(url);
 		final boolean isPOST = "POST".equals(req.getMethod());
-		
+
 		HttpURLConnection conn = openConnection(url, isPOST);
-		
+
 		if (isPOST) {
 			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Content-Type", "application/json; utf-8");
 			conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-			conn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+			conn.setRequestProperty("Accept", "application/json");
 
-			try (DataOutputStream wr = new DataOutputStream(conn.getOutputStream())) {
-                copy(req.getInputStream(), wr);
-				wr.flush();
+			try (OutputStream proxyOut = conn.getOutputStream()) {
+				IOUtils.copy(req.getInputStream(), proxyOut);
 			}
 		}
 		
 		resp.setStatus(conn.getResponseCode());
 		
 		try (InputStream proxyIn = conn.getInputStream();) {
-			copy(proxyIn, resp.getOutputStream());
+			IOUtils.copy(proxyIn, resp.getOutputStream());
 		}
 	}
 	
@@ -95,18 +96,6 @@ public class TeleProxyServlet extends HttpServlet {
 			return matcher.group(1);
 		}
 		return null;
-	}
-	
-	public static void copy(InputStream in, OutputStream out) throws IOException {
-		
-		byte[] buffer = new byte[65536];
-		while (true) {
-			int bytesRead = in.read(buffer);
-			if (bytesRead == -1) {
-				break;
-			}
-			out.write(buffer, 0, bytesRead);
-		}
 	}
 	
 	@Override
